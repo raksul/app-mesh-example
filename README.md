@@ -51,3 +51,17 @@ Congrats! You're accessing the web service supported by gRPC using App Mesh!
 Here is the diagram that explains the infrastructure:
 
 ![diagram](https://github.com/yizumi/app-mesh-example/raw/master/doc/infrastructure.jpg)
+
+Here's the data flow:
+* From the Web Browser, App Load Balancer accepts a HTTP request on port 80.
+* App Load Balacer forwards the HTTP request to one of the `echo_client` services.
+* `echo_client` service then calls `echo_server` through gRPC, proxying a virtual service and virtual router.
+* V.Router's routing forwards the traffic to one of the healthy virtual node.
+
+# Updating the server code
+
+Let's update the gRPC server written in go.
+
+```go
+
+```
