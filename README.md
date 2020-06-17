@@ -50,4 +50,4 @@ Congrats! You're accessing the web service supported by gRPC using App Mesh!
 
 Here is the diagram that explains the infrastructure:
 
-[!diagram](https://github.com/yizumi/app-mesh-example/blob/doc/infrastructure.jpg)
+![diagram](https://github.com/yizumi/app-mesh-example/raw/master/doc/infrastructure.jpg)
