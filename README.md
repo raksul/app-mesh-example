@@ -163,7 +163,7 @@ This deploy strategy is very similar to Blue-Green Deploy available in ECS, howe
 
 Let's look at the diagram to see what just happened behind the scene.
 
-![diagram](https://github.com/yizumi/app-mesh-example/raw/master/doc/infrastructure.jpg)
+![diagram](https://github.com/yizumi/app-mesh-example/raw/master/doc/service-update.jpg)
 
 In hindsight, this is what happened:
 * The requests coming from `echo_client` was served by the Virtual Service, which has a routing definition saying "I'm routing 100% traffic to version 0.9"
