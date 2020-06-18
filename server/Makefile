@@ -13,6 +13,7 @@ run:
 # 	aws ecs update-service --cluster echo --service echo-app-EchoServerService-1MWS12Z1FZXEO --force-new-deployment
 
 update: build push
+	. ../.env
 	./update-service.sh
 
 start: build run

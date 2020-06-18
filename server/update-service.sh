@@ -1,20 +1,26 @@
 export AWS_PAGER=""
 
-CLUSTER_NAME=mesh
-MESH_NAME=echo-mesh
-NAMESPACE=echo.local
-SERVICE_NAME=echo_server
-VIRTUAL_ROUTER_NAME=virtual-router
-ROUTE_NAME=route
-VERSION=$(date +%Y%m%d%H%M%S)
+if [ -z $PROJECT_NAME ]; then
+  echo "PROJECT_NAME environment variable is not set."
+  exit 1
+fi
+
+OLD_ECS_SERVICE_NAME=$(aws ecs list-services --cluster $PROJECT_NAME| jq '.serviceArns[0]' | sed -e 's/.*\/\(.*\)"$/\1/g')
+VPC_CONFIG=$(aws ecs describe-services --cluster $PROJECT_NAME --services $OLD_ECS_SERVICE_NAME | jq '.services[0].networkConfiguration.awsvpcConfiguration')
+PRIVATE_SUBNET_1=$(echo $VPC_CONFIG | jq ".subnets[0]" | sed 's/\"//g')
+PRIVATE_SUBNET_2=$(echo $VPC_CONFIG | jq ".subnets[1]" | sed 's/\"//g')
+SECURITY_GROUP=$(echo $VPC_CONFIG | jq ".securityGroups[0]" | sed 's/\"//g')
+
 
 # Desired number of Tasks to run on ECS
 DESIRED_COUNT=2
-
-# Subnets & Security Groups to launch the ECS Service
-PRIVATE_SUBNET_1=subnet-0274f96968481c828
-PRIVATE_SUBNET_2=subnet-0667ed5ab8cd664cb
-SECURITY_GROUP=sg-0db5043bcff9192e8
+CLUSTER_NAME=$PROJECT_NAME
+MESH_NAME=${PROJECT_NAME}-mesh
+NAMESPACE=${PROJECT_NAME}.local
+SERVICE_NAME=${PROJECT_NAME}_server
+VIRTUAL_ROUTER_NAME=virtual-router
+ROUTE_NAME=route
+VERSION=$(date +%Y%m%d%H%M%S)
 
 VIRTUAL_NODE_NAME=${SERVICE_NAME}-${VERSION}
 ECS_SERVICE_NAME=${SERVICE_NAME}-${VERSION}-service
