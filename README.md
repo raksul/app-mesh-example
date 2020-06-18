@@ -96,9 +96,9 @@ Now you see that the server is responding with Version 1.0.
 
 ## Refresh the ECS Service
 
-Let's now update the service on ECS and see if the client routing works.
+Let's now see if we can update the `echo_server` seamlessly without breaking the client.
 
-First, let's run the following 
+First, let's run the following `curl` command to keep the request running during the update:
 ```bash:Terminal 1
 $ while true; do echo; curl "http://echo-publi-upxd2gg2nc16-261471328.ap-northeast-1.elb.amazonaws.com/?name=Yusuke"; done
 Response from the server: Hello, Yusuke-san! (Said 169.254.172.42, Version 0.9)
@@ -113,8 +113,9 @@ $ cd server
 $ make update
 ```
 
-This will build a new docker image, pushes it to ECS, then creates a new ECS service, wait for the new service to be stable, then switches tran
+This will build a new docker image, pushes it to ECS, then creates a new ECS service, wait for the new service to be stable, then switches traffic from old instances to new instances.
 
+At one point you'll see something like this:
 ```bash:Terminal 2
 Waiting for ECS Service to be in RUNNING state...
 Tasks are starting (0/2)...
