@@ -161,7 +161,7 @@ The Server 0.9 can now be safely destroyed. (WIP)
 
 This deploy strategy is very similar to Blue-Green Deploy available in ECS, however, it clearly works with gRPC, and does not break the connection between client and server.
 
-Let's look at the diagram to see what's happening behind the scene.
+Let's look at the diagram to see what just happened behind the scene.
 
 ![diagram](https://github.com/yizumi/app-mesh-example/raw/master/doc/infrastructure.jpg)
 
