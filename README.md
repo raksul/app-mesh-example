@@ -172,3 +172,8 @@ In hindsight, this is what happened:
 * Once confirmed that Version 1.0 instances are running in "HEALTHY" state, we'll begin routing 50% of the traffic to Version 1.0 instances. (Figure 2)
 * It then waits couple more seconds and begin routing ALL requests to Version 1.0 instances.
 * Once confirmed that all traffic now routes to the new service, we can safely destroy the old node.
+
+# Other Resources
+
+* (MUST READ!) https://www.appmeshworkshop.com/
+* (VERY USEFUL) https://github.com/aws/aws-app-mesh-examples
