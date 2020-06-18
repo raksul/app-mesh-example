@@ -74,7 +74,7 @@ Let's just update the version indicated in `server.go`:
 Test the code by running the server on local environment.
 ```bash:Screen 1
 $ go run server.go
-2020/06/18 23:37:32 Echo Server Version 0.9
+2020/06/18 23:37:32 Echo Server Version 1.0
 2020/06/18 23:37:32 Starting on port: 50051, ssl: false
 ```
 
