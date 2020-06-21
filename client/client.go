@@ -3,7 +3,7 @@ package main
 import (
   "context"
   "fmt"
-  "github.com/yizumi/app-mesh-example/client/proto/echo"
+  "github.com/raksul/app-mesh-example/client/proto/echo"
   "google.golang.org/grpc"
   "google.golang.org/grpc/credentials"
   "log"

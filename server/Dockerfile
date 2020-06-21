@@ -2,7 +2,7 @@ FROM golang:1.14.2
 MAINTAINER yizumi
 
 RUN apt-get update && apt-get install -y unzip
-WORKDIR /go/src/github.com/yizumi/echo
+WORKDIR /go/src/github.com/raksul/echo
 
 # make protoc available for ... what?
 RUN mkdir -p /tmp/protoc && \  
@@ -17,7 +17,7 @@ RUN mkdir -p /tmp/protoc && \
 RUN go get -u google.golang.org/grpc
 RUN go get -u github.com/golang/protobuf/protoc-gen-go
 
-ENV PROJECT_HOME=$GOPATH/src/github.com/yizumi/app-mesh-example/server
+ENV PROJECT_HOME=$GOPATH/src/github.com/raksul/app-mesh-example/server
 
 WORKDIR $PROJECT_HOME 
 COPY . $PROJECT_HOME

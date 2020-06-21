@@ -2,7 +2,7 @@ package main
 
 import (
   "context"
-  "github.com/yizumi/app-mesh-example/server/proto/echo"
+  "github.com/raksul/app-mesh-example/server/proto/echo"
   "google.golang.org/grpc"
   "google.golang.org/grpc/codes"
   "google.golang.org/grpc/credentials"
