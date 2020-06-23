@@ -1,3 +1,5 @@
+#!/bin/bash -e
+
 export AWS_PAGER=""
 
 if [ -z $PROJECT_NAME ]; then
@@ -5,12 +7,31 @@ if [ -z $PROJECT_NAME ]; then
   exit 1
 fi
 
-OLD_ECS_SERVICE_NAME=$(aws ecs list-services --cluster $PROJECT_NAME| jq '.serviceArns[0]' | sed -e 's/.*\/\(.*\)"$/\1/g')
-VPC_CONFIG=$(aws ecs describe-services --cluster $PROJECT_NAME --services $OLD_ECS_SERVICE_NAME | jq '.services[0].networkConfiguration.awsvpcConfiguration')
+if [ -z $SERVICE_NAME ]; then
+  echo "SERVICE_NAME environment variable is not set."
+  exit 1
+fi
+
+OLD_ECS_SERVICE_NAME=$(aws ecs list-services --cluster $PROJECT_NAME| jq '.serviceArns[] | select(index("'$SERVICE_NAME'") > -1)' | sed -e 's/.*\/\(.*\)"$/\1/g')
+VPC_CONFIG=$(aws ecs describe-services --cluster $PROJECT_NAME --services $OLD_ECS_SERVICE_NAME | jq '.services[0].taskSets[0].networkConfiguration.awsvpcConfiguration')
 PRIVATE_SUBNET_1=$(echo $VPC_CONFIG | jq ".subnets[0]" | sed 's/\"//g')
 PRIVATE_SUBNET_2=$(echo $VPC_CONFIG | jq ".subnets[1]" | sed 's/\"//g')
 SECURITY_GROUP=$(echo $VPC_CONFIG | jq ".securityGroups[0]" | sed 's/\"//g')
 
+if [ -z $PRIVATE_SUBNET_1 ] || [ -z $PRIVATE_SUBNET_2 ] || [ "$PRIVATE_SUBNET_1" == "null" ] || [ "$PRIVATE_SUBNET_2" == "null" ]; then
+  echo "Could not resolve PrivateSubnets"
+  echo "Exiting..."
+  exit 1
+fi
+echo "Detected PrivateSubnet1: ${PRIVATE_SUBNET_1}"
+echo "Detected PrivateSubnet2: ${PRIVATE_SUBNET_2}"
+
+if [ -z $SECURITY_GROUP ] || [ "$SECURITY_GROUP" == "null" ]; then
+  echo "Could not resolve Security Group"
+  echo "Exiting..."
+  exit 1
+fi
+echo "Using Security Group: ${SECURITY_GROUP}"
 
 # Desired number of Tasks to run on ECS
 DESIRED_COUNT=2
