@@ -59,7 +59,6 @@ Resources:
       Protocol: HTTP
       TargetType: ip
       Name: !Sub '${ProjectName}-webtarget'
-      UnhealthyThresholdCount: 2
       TargetGroupAttributes:
       - Key: deregistration_delay.timeout_seconds
         Value: 120
