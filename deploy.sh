@@ -30,15 +30,14 @@ if [ -z $KEY_PAIR ]; then
 fi
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
-ECR_IMAGE_PREFIX=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${PROJECT_NAME}
 
 deploy_images() {
     echo "Deploying Client and Server images to ECR..."
     for app in client server; do
         aws ecr describe-repositories --repository-name ${PROJECT_NAME}/${app} >/dev/null 2>&1 || aws ecr create-repository --repository-name ${PROJECT_NAME}/${app}
         docker build -t ${ECR_IMAGE_PREFIX}/${app} ${DIR}/${app} --build-arg GO_PROXY=${GO_PROXY:-"https://proxy.golang.org"}
-        aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin 373656256964.dkr.ecr.ap-northeast-1.amazonaws.com
-        # $(aws ecr get-login --no-include-email)
+        aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
+
         docker push ${ECR_IMAGE_PREFIX}/${app}
     done
 }

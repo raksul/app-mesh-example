@@ -13,7 +13,9 @@ if [ -z $SERVICE_NAME ]; then
 fi
 
 OLD_ECS_SERVICE_NAME=$(aws ecs list-services --cluster $PROJECT_NAME| jq '.serviceArns[] | select(index("'$SERVICE_NAME'") > -1)' | sed -e 's/.*\/\(.*\)"$/\1/g')
-VPC_CONFIG=$(aws ecs describe-services --cluster $PROJECT_NAME --services $OLD_ECS_SERVICE_NAME | jq '.services[0].taskSets[0].networkConfiguration.awsvpcConfiguration')
+VPC_CONFIG=$(aws ecs describe-services --cluster $PROJECT_NAME --services $OLD_ECS_SERVICE_NAME | jq '.services[0].networkConfiguration.awsvpcConfiguration')
+echo "VPC_CONFIG: ${VPC_CONFIG}"
+
 PRIVATE_SUBNET_1=$(echo $VPC_CONFIG | jq ".subnets[0]" | sed 's/\"//g')
 PRIVATE_SUBNET_2=$(echo $VPC_CONFIG | jq ".subnets[1]" | sed 's/\"//g')
 SECURITY_GROUP=$(echo $VPC_CONFIG | jq ".securityGroups[0]" | sed 's/\"//g')
@@ -100,14 +102,17 @@ register_new_task() {
   echo "Registering new task definition"
   TASK_DEF_ARN=$(aws ecs list-task-definitions | \
     jq -r ' .taskDefinitionArns[] | select( . | contains("'$SERVICE_NAME'"))' | tail -1)
+  echo $TASK_DEF_ARN
+
   TASK_DEF_OLD=$(aws ecs describe-task-definition --task-definition $TASK_DEF_ARN);
+
   TASK_DEF_NEW=$(echo $TASK_DEF_OLD \
     | jq ' .taskDefinition' \
     | jq ' .containerDefinitions[].environment |= map(
           if .name=="APPMESH_VIRTUAL_NODE_NAME" then 
                 .value="mesh/'$MESH_NAME'/virtualNode/'$VIRTUAL_NODE_NAME'" 
           else . end) ' \
-    | jq ' del(.status, .compatibilities, .taskDefinitionArn, .requiresAttributes, .revision) '
+    | jq ' del(.status, .compatibilities, .taskDefinitionArn, .requiresAttributes, .revision, .registeredAt, .registeredBy) '
   ); \
   TASK_DEF_FAMILY=$(echo $TASK_DEF_ARN | cut -d"/" -f2 | cut -d":" -f1);
   echo $TASK_DEF_NEW > /tmp/$TASK_DEF_FAMILY.json && 
@@ -196,7 +201,6 @@ update_traffic_route() {
   echo "Updating traffic route"
   SPEC=$(aws appmesh describe-route --mesh-name $MESH_NAME --virtual-router-name $VIRTUAL_ROUTER_NAME --route-name $ROUTE_NAME \
     | jq ".route.spec" | jq '.grpcRoute.action.weightedTargets |= map({"virtualNode":.virtualNode, "weight": 1})' | jq '.grpcRoute.action.weightedTargets |= [.[-2,-1]]')
-  echo $SPEC
   aws appmesh update-route --mesh-name $MESH_NAME --virtual-router-name $VIRTUAL_ROUTER_NAME --route-name $ROUTE_NAME --spec "$SPEC"
 }
 
