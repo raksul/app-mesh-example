@@ -40,13 +40,13 @@ DESIRED_COUNT=2
 CLUSTER_NAME=$PROJECT_NAME
 MESH_NAME=${PROJECT_NAME}-mesh
 NAMESPACE=${PROJECT_NAME}.local
-SERVICE_NAME=${PROJECT_NAME}_server
+TASK_NAME=echo_server
 VIRTUAL_ROUTER_NAME=virtual-router
 ROUTE_NAME=route
 VERSION=$(date +%Y%m%d%H%M%S)
 
-VIRTUAL_NODE_NAME=${SERVICE_NAME}-${VERSION}
-ECS_SERVICE_NAME=${SERVICE_NAME}-${VERSION}-service
+VIRTUAL_NODE_NAME=${TASK_NAME}-${VERSION}
+ECS_SERVICE_NAME=${TASK_NAME}-${VERSION}-service
 
 create_virtual_node() {
   echo "Creating Virtual Node: $VIRTUAL_NODE_NAME"
@@ -101,7 +101,7 @@ init_traffic_route() {
 register_new_task() {
   echo "Registering new task definition"
   TASK_DEF_ARN=$(aws ecs list-task-definitions | \
-    jq -r ' .taskDefinitionArns[] | select( . | contains("'$SERVICE_NAME'"))' | tail -1)
+    jq -r ' .taskDefinitionArns[] | select( . | contains("'$TASK_NAME'"))' | tail -1)
   echo $TASK_DEF_ARN
 
   TASK_DEF_OLD=$(aws ecs describe-task-definition --task-definition $TASK_DEF_ARN);
@@ -135,9 +135,9 @@ create_task_set() {
   SERVICE_ARN=$(aws ecs list-services --cluster $CLUSTER_NAME | \
     jq -r ' .serviceArns[] | select( . | contains("'$ECS_SERVICE_NAME'"))' | tail -1)
   TASK_DEF_ARN=$(aws ecs list-task-definitions | \
-    jq -r ' .taskDefinitionArns[] | select( . | contains("'$SERVICE_NAME'"))' | tail -1)
+    jq -r ' .taskDefinitionArns[] | select( . | contains("'$TASK_NAME'"))' | tail -1)
   CMAP_SVC_ARN=$(aws servicediscovery list-services | \
-    jq -r '.Services[] | select(.Name == "'$SERVICE_NAME'") | .Arn');
+    jq -r '.Services[] | select(.Name == "'$TASK_NAME'") | .Arn');
   # Create ecs task set #
   aws ecs create-task-set \
     --service $SERVICE_ARN \
@@ -156,9 +156,9 @@ create_task_set() {
 wait_for_ecs_service() {
   echo "Waiting for ECS Service to be in RUNNING state..."
   TASK_DEF_ARN=$(aws ecs list-task-definitions | \
-    jq -r ' .taskDefinitionArns[] | select( . | contains("'$SERVICE_NAME'"))' | tail -1);
+    jq -r ' .taskDefinitionArns[] | select( . | contains("'$TASK_NAME'"))' | tail -1);
   CMAP_SVC_ID=$(aws servicediscovery list-services | \
-    jq -r '.Services[] | select(.Name == "'$SERVICE_NAME'") | .Id');
+    jq -r '.Services[] | select(.Name == "'$TASK_NAME'") | .Id');
 
   # Get number of running tasks #
   _list_tasks() {
