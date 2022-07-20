@@ -13,7 +13,9 @@ if [ -z $SERVICE_NAME ]; then
 fi
 
 OLD_ECS_SERVICE_NAME=$(aws ecs list-services --cluster $PROJECT_NAME| jq '.serviceArns[] | select(index("'$SERVICE_NAME'") > -1)' | sed -e 's/.*\/\(.*\)"$/\1/g')
-VPC_CONFIG=$(aws ecs describe-services --cluster $PROJECT_NAME --services $OLD_ECS_SERVICE_NAME | jq '.services[0].taskSets[0].networkConfiguration.awsvpcConfiguration')
+VPC_CONFIG=$(aws ecs describe-services --cluster $PROJECT_NAME --services $OLD_ECS_SERVICE_NAME | jq '.services[0].networkConfiguration.awsvpcConfiguration')
+echo "VPC_CONFIG: ${VPC_CONFIG}"
+
 PRIVATE_SUBNET_1=$(echo $VPC_CONFIG | jq ".subnets[0]" | sed 's/\"//g')
 PRIVATE_SUBNET_2=$(echo $VPC_CONFIG | jq ".subnets[1]" | sed 's/\"//g')
 SECURITY_GROUP=$(echo $VPC_CONFIG | jq ".securityGroups[0]" | sed 's/\"//g')
@@ -38,13 +40,13 @@ DESIRED_COUNT=2
 CLUSTER_NAME=$PROJECT_NAME
 MESH_NAME=${PROJECT_NAME}-mesh
 NAMESPACE=${PROJECT_NAME}.local
-SERVICE_NAME=${PROJECT_NAME}_server
+TASK_NAME=echo_server
 VIRTUAL_ROUTER_NAME=virtual-router
 ROUTE_NAME=route
 VERSION=$(date +%Y%m%d%H%M%S)
 
-VIRTUAL_NODE_NAME=${SERVICE_NAME}-${VERSION}
-ECS_SERVICE_NAME=${SERVICE_NAME}-${VERSION}-service
+VIRTUAL_NODE_NAME=${TASK_NAME}-${VERSION}
+ECS_SERVICE_NAME=${TASK_NAME}-${VERSION}-service
 
 create_virtual_node() {
   echo "Creating Virtual Node: $VIRTUAL_NODE_NAME"
@@ -99,15 +101,18 @@ init_traffic_route() {
 register_new_task() {
   echo "Registering new task definition"
   TASK_DEF_ARN=$(aws ecs list-task-definitions | \
-    jq -r ' .taskDefinitionArns[] | select( . | contains("'$SERVICE_NAME'"))' | tail -1)
+    jq -r ' .taskDefinitionArns[] | select( . | contains("'$TASK_NAME'"))' | tail -1)
+  echo $TASK_DEF_ARN
+
   TASK_DEF_OLD=$(aws ecs describe-task-definition --task-definition $TASK_DEF_ARN);
+
   TASK_DEF_NEW=$(echo $TASK_DEF_OLD \
     | jq ' .taskDefinition' \
     | jq ' .containerDefinitions[].environment |= map(
           if .name=="APPMESH_VIRTUAL_NODE_NAME" then 
                 .value="mesh/'$MESH_NAME'/virtualNode/'$VIRTUAL_NODE_NAME'" 
           else . end) ' \
-    | jq ' del(.status, .compatibilities, .taskDefinitionArn, .requiresAttributes, .revision) '
+    | jq ' del(.status, .compatibilities, .taskDefinitionArn, .requiresAttributes, .revision, .registeredAt, .registeredBy) '
   ); \
   TASK_DEF_FAMILY=$(echo $TASK_DEF_ARN | cut -d"/" -f2 | cut -d":" -f1);
   echo $TASK_DEF_NEW > /tmp/$TASK_DEF_FAMILY.json && 
@@ -130,9 +135,9 @@ create_task_set() {
   SERVICE_ARN=$(aws ecs list-services --cluster $CLUSTER_NAME | \
     jq -r ' .serviceArns[] | select( . | contains("'$ECS_SERVICE_NAME'"))' | tail -1)
   TASK_DEF_ARN=$(aws ecs list-task-definitions | \
-    jq -r ' .taskDefinitionArns[] | select( . | contains("'$SERVICE_NAME'"))' | tail -1)
+    jq -r ' .taskDefinitionArns[] | select( . | contains("'$TASK_NAME'"))' | tail -1)
   CMAP_SVC_ARN=$(aws servicediscovery list-services | \
-    jq -r '.Services[] | select(.Name == "'$SERVICE_NAME'") | .Arn');
+    jq -r '.Services[] | select(.Name == "'$TASK_NAME'") | .Arn');
   # Create ecs task set #
   aws ecs create-task-set \
     --service $SERVICE_ARN \
@@ -151,9 +156,9 @@ create_task_set() {
 wait_for_ecs_service() {
   echo "Waiting for ECS Service to be in RUNNING state..."
   TASK_DEF_ARN=$(aws ecs list-task-definitions | \
-    jq -r ' .taskDefinitionArns[] | select( . | contains("'$SERVICE_NAME'"))' | tail -1);
+    jq -r ' .taskDefinitionArns[] | select( . | contains("'$TASK_NAME'"))' | tail -1);
   CMAP_SVC_ID=$(aws servicediscovery list-services | \
-    jq -r '.Services[] | select(.Name == "'$SERVICE_NAME'") | .Id');
+    jq -r '.Services[] | select(.Name == "'$TASK_NAME'") | .Id');
 
   # Get number of running tasks #
   _list_tasks() {
@@ -196,7 +201,6 @@ update_traffic_route() {
   echo "Updating traffic route"
   SPEC=$(aws appmesh describe-route --mesh-name $MESH_NAME --virtual-router-name $VIRTUAL_ROUTER_NAME --route-name $ROUTE_NAME \
     | jq ".route.spec" | jq '.grpcRoute.action.weightedTargets |= map({"virtualNode":.virtualNode, "weight": 1})' | jq '.grpcRoute.action.weightedTargets |= [.[-2,-1]]')
-  echo $SPEC
   aws appmesh update-route --mesh-name $MESH_NAME --virtual-router-name $VIRTUAL_ROUTER_NAME --route-name $ROUTE_NAME --spec "$SPEC"
 }
 

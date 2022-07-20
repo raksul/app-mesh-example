@@ -1,5 +1,4 @@
-FROM golang:1.14.2
-MAINTAINER yizumi
+FROM golang:1.17.1
 
 RUN apt-get update && apt-get install -y unzip
 WORKDIR /go/src/github.com/raksul/echo
@@ -14,8 +13,8 @@ RUN mkdir -p /tmp/protoc && \
   cd /tmp && \  
   rm -r /tmp/protoc
 
-RUN go get -u google.golang.org/grpc
-RUN go get -u github.com/golang/protobuf/protoc-gen-go
+RUN GODEBUG=netdns=cgo go get -u google.golang.org/grpc
+RUN GODEBUG=netdns=cgo go get -u github.com/golang/protobuf/protoc-gen-go
 
 ENV PROJECT_HOME=$GOPATH/src/github.com/raksul/app-mesh-example/client
 
@@ -23,5 +22,7 @@ WORKDIR $PROJECT_HOME
 COPY . $PROJECT_HOME
 
 EXPOSE 8080
+
+RUN go mod init && go mod tidy
 
 CMD go run $PROJECT_HOME/client.go

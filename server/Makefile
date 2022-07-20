@@ -2,9 +2,13 @@ build:
 	docker build -t echo/server .
 
 push:
-	aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin 373656256964.dkr.ecr.ap-northeast-1.amazonaws.com
-	docker tag echo/server:latest 373656256964.dkr.ecr.ap-northeast-1.amazonaws.com/echo/server:latest
-	docker push 373656256964.dkr.ecr.ap-northeast-1.amazonaws.com/echo/server:latest
+	if [ -z $ECR_IMAGE_PREFIX ]; then
+		echo "ECR_IMAGE_PREFIX environment variable is not set."
+		exit 1
+	fi
+	aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
+	docker tag echo/server:latest ${ECR_IMAGE_PREFIX}/server:latest
+	docker push ${ECR_IMAGE_PREFIX}/server:latest
 run:
 	docker run -it -p 50051:50051 echo/server
 
